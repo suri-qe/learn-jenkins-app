@@ -3,8 +3,26 @@ pipeline {
 
     stages {
         stage('Build') {
+            agent {
+                docker {
+                    image 'node:18-alpine'
+                    reuseNode true
+                }
+            }  
+            steps {
+                sh '''
+                    ls -la
+                    node --version
+                    npm --version
+                    npm ci
+                    npm run build
+                    ls -la
+                '''
+            }       
+        }
+        stage('Tests'){
             parallel {
-                stage('Test'){
+                stage ('Unit tests') {
                     agent {
                         docker {
                             image 'node:18-alpine'
@@ -23,7 +41,6 @@ pipeline {
                         }
                     }
                 }
-
                 stage('E2E'){
                     agent {
                         docker {
@@ -44,10 +61,24 @@ pipeline {
                             publishHTML([allowMissing: false, alwaysLinkToLastBuild: false, keepAll: false, reportDir: 'playwright-report', reportFiles: 'index.html', reportName: 'HTML Report', reportTitles: '', useWrapperFileDirectly: true])
                         }
                     }
-                }         
-            }
+                }
+            } 
         }
-
+        stage('Deploy') {
+            agent {
+                docker {
+                    image 'node:18-alpine'
+                    reuseNode true
+                }
+            }  
+            steps {
+                sh '''
+                    npm install netlify-cli -g
+                    netlify --version
+                '''
+            }       
+        }
+        
         
     }
 
